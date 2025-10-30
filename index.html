@@ -43,10 +43,12 @@
                         <option value="student">Student</option>
                         <option value="faculty">Faculty</option>
                         <option value="security">Security</option>
-                        <option value="principal">Principal</option> </select>
-                    <div id="studentInfo" class="space-y-4">
-                         <input type="text" id="signupStudentName" placeholder="Full Name" class="w-full p-3 border rounded-lg">
-                         <input type="text" id="signupStudentId" placeholder="Student ID" class="w-full p-3 border rounded-lg">
+                        <option value="principal">Principal</option>
+                    </select>
+                    
+                    <div id="nameInfo" class="space-y-4"> <input type="text" id="signupStudentName" placeholder="Full Name" class="w-full p-3 border rounded-lg">
+                    </div>
+                    <div id="studentIdInfo" class="space-y-4"> <input type="text" id="signupStudentId" placeholder="Student ID" class="w-full p-3 border rounded-lg">
                     </div>
                     <button type="submit" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-md">Create Account</button>
                 </form>
@@ -91,12 +93,10 @@
                 <h1 class="text-3xl font-bold">Faculty Dashboard</h1>
                 <button onclick="handleLogout()" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg">Sign Out</button>
             </div>
-
             <div class="flex border-b mb-6">
                 <button id="studentRequestsTab" onclick="switchFacultyTab('studentRequests')" class="flex-1 py-2 font-semibold border-b-2 tab-active">Student Requests</button>
                 <button id="myLeaveTab" onclick="switchFacultyTab('myLeave')" class="flex-1 py-2 font-semibold border-b-2 border-transparent">My Leave</button>
             </div>
-
             <div id="studentRequestsView">
                 <div class="bg-white p-6 rounded-2xl shadow-lg">
                     <h2 class="text-xl font-bold mb-4">Pending Student Gate Pass Requests</h2>
@@ -104,7 +104,6 @@
                         </div>
                 </div>
             </div>
-
             <div id="myLeaveView" class="hidden">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div class="md:col-span-1 bg-white p-6 rounded-2xl shadow-lg">
@@ -180,9 +179,9 @@
         const studentDashboard = document.getElementById('studentDashboard');
         const facultyDashboard = document.getElementById('facultyDashboard');
         const securityDashboard = document.getElementById('securityDashboard');
-        const principalDashboard = document.getElementById('principalDashboard'); // ADDED
+        const principalDashboard = document.getElementById('principalDashboard');
         
-        let app, db, auth, usersCollectionRef, gatePassesCollectionRef, facultyLeavesCollectionRef; // ADDED facultyLeavesCollectionRef
+        let app, db, auth, usersCollectionRef, gatePassesCollectionRef, facultyLeavesCollectionRef;
 
         // --- Main App Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -208,7 +207,7 @@
                 
                 usersCollectionRef = collection(db, "users");
                 gatePassesCollectionRef = collection(db, "gatepasses");
-                facultyLeavesCollectionRef = collection(db, "facultyLeaves"); // ADDED
+                facultyLeavesCollectionRef = collection(db, "facultyLeaves");
                 
                 console.log("STEP 2: Firebase has been initialized successfully. Setting up authentication listener.");
                 setupAuthListener();
@@ -256,7 +255,7 @@
             studentDashboard.classList.add('hidden');
             facultyDashboard.classList.add('hidden');
             securityDashboard.classList.add('hidden');
-            principalDashboard.classList.add('hidden'); // MODIFIED
+            principalDashboard.classList.add('hidden');
 
             if (userData.role === 'student') {
                 document.getElementById('studentName').value = userData.name;
@@ -265,12 +264,11 @@
                 listenForStudentPasses(auth.currentUser.uid);
             } else if (userData.role === 'faculty') {
                 facultyDashboard.classList.remove('hidden');
-                // MODIFIED: Faculty now has two listeners
-                listenForPendingRequests(); // For approving student passes
-                listenForMyLeave(auth.currentUser.uid); // For their own leave history
+                listenForPendingRequests();
+                listenForMyLeave(auth.currentUser.uid);
             } else if (userData.role === 'security') {
                 securityDashboard.classList.remove('hidden');
-            } else if (userData.role === 'principal') { // ADDED
+            } else if (userData.role === 'principal') {
                 principalDashboard.classList.remove('hidden');
                 listenForPendingFacultyLeaves();
             }
@@ -283,7 +281,7 @@
             studentDashboard.classList.add('hidden');
             facultyDashboard.classList.add('hidden');
             securityDashboard.classList.add('hidden');
-            principalDashboard.classList.add('hidden'); // ADDED
+            principalDashboard.classList.add('hidden');
         }
         
         // --- All other functions (event listeners, UI updates, etc.) ---
@@ -306,9 +304,34 @@
             }
         };
         
+        // START: MODIFIED JAVASCRIPT FOR BUG FIX
         document.getElementById('userRole').addEventListener('change', (e) => {
-            document.getElementById('studentInfo').style.display = e.target.value === 'student' ? 'block' : 'none';
+            const role = e.target.value;
+            const nameDiv = document.getElementById('nameInfo');
+            const studentIdDiv = document.getElementById('studentIdInfo');
+
+            // Show name field for students, faculty, and principals
+            if (role === 'student' || role === 'faculty' || role === 'principal') {
+                nameDiv.style.display = 'block';
+            } else {
+                nameDiv.style.display = 'none';
+            }
+
+            // Show Student ID field ONLY for students
+            if (role === 'student') {
+                studentIdDiv.style.display = 'block';
+            } else {
+                studentIdDiv.style.display = 'none';
+            }
         });
+
+        // Also run this logic once on page load for the default "student" role
+        document.addEventListener('DOMContentLoaded', () => {
+             document.getElementById('nameInfo').style.display = 'block';
+             document.getElementById('studentIdInfo').style.display = 'block';
+        });
+        // END: MODIFIED JAVASCRIPT FOR BUG FIX
+
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -340,7 +363,6 @@
             }
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                // MODIFIED: Save name for all roles
                 const userDoc = { email, role, name: name || null, studentId: studentId || null };
                 await setDoc(doc(usersCollectionRef, userCredential.user.uid), userDoc);
             } catch (error) {
@@ -352,7 +374,7 @@
             await signOut(auth);
         };
 
-        // --- NEW: Faculty Tab Switching ---
+        // --- Faculty Tab Switching ---
         window.switchFacultyTab = (tab) => {
             const studentView = document.getElementById('studentRequestsView');
             const leaveView = document.getElementById('myLeaveView');
@@ -372,7 +394,7 @@
             }
         };
 
-        // --- Student Logic (Existing) ---
+        // --- Student Logic ---
         document.getElementById('gatePassForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             try {
@@ -387,7 +409,6 @@
                     requestedAt: serverTimestamp(),
                 });
                 showModal('Success', 'Request submitted!', 'success');
-                // Reset only the student form fields
                 document.getElementById('reason').value = '';
                 document.getElementById('leaveStart').value = '';
                 document.getElementById('leaveEnd').value = '';
@@ -415,7 +436,6 @@
             });
         }
 
-        // Re-used for both Student and Faculty leave history
         function createStudentPassCard(pass) { 
             const card = document.createElement('div');
             const statusMap={pending:{bg:"bg-yellow-100",text:"text-yellow-800",label:"Pending"},approved:{bg:"bg-green-100",text:"text-green-800",label:"Approved"},rejected:{bg:"bg-red-100",text:"text-red-800",label:"Rejected"}},status=statusMap[pass.status]||statusMap.pending;card.className=`p-4 rounded-lg border ${status.bg.replace("bg-","border-")}`;card.innerHTML=`<div class="flex justify-between items-start"><div><p class="font-bold text-gray-800">${pass.reason}</p><p class="text-sm text-gray-600">From: ${new Date(pass.leaveStart).toLocaleString()}</p><p class="text-sm text-gray-600">To: ${new Date(pass.leaveEnd).toLocaleString()}</p>${pass.status==="approved"?`<p class="text-sm font-semibold text-blue-700 mt-2">Pass ID: ${pass.id}</p>`:""}</div><span class="font-semibold py-1 px-3 rounded-full text-sm ${status.bg} ${status.text}">${status.label}</span></div>`;
@@ -449,7 +469,7 @@
             await updateDoc(passRef, { status, processedAt: serverTimestamp() });
         };
 
-        // --- NEW: Faculty Logic (For Their Own Leave) ---
+        // --- Faculty Logic (For Their Own Leave) ---
         document.getElementById('facultyLeaveForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const userDocRef = doc(usersCollectionRef, auth.currentUser.uid);
@@ -457,7 +477,7 @@
             const facultyName = userDocSnap.exists() ? userDocSnap.data().name : "Faculty Member";
 
             try {
-                await addDoc(facultyLeavesCollectionRef, { // Use new collection
+                await addDoc(facultyLeavesCollectionRef, {
                     facultyName: facultyName,
                     facultyUid: auth.currentUser.uid,
                     reason: document.getElementById('facultyReason').value,
@@ -467,7 +487,6 @@
                     requestedAt: serverTimestamp(),
                 });
                 showModal('Success', 'Your leave request has been submitted!', 'success');
-                // Reset only the faculty leave form
                 document.getElementById('facultyReason').value = '';
                 document.getElementById('facultyLeaveStart').value = '';
                 document.getElementById('facultyLeaveEnd').value = '';
@@ -476,9 +495,8 @@
             }
         });
 
-        // NEW: Faculty listens for their own leave history
         function listenForMyLeave(facultyUid) {
-            const q = query(facultyLeavesCollectionRef, where("facultyUid", "==", facultyUid)); // Use new collection
+            const q = query(facultyLeavesCollectionRef, where("facultyUid", "==", facultyUid));
             onSnapshot(q, (snapshot) => {
                 const facultyLeaveList = document.getElementById('facultyLeaveList');
                 facultyLeaveList.innerHTML = '';
@@ -488,21 +506,19 @@
                 }
                 const leaves = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 leaves.sort((a, b) => (b.requestedAt?.toDate() || 0) - (a.requestedAt?.toDate() || 0));
-                
-                // We can reuse the student's pass card creator!
                 leaves.forEach(leave => facultyLeaveList.appendChild(createStudentPassCard(leave)));
             });
         }
 
 
-        // --- Security Logic (Existing) ---
+        // --- Security Logic ---
         window.verifyPass = async () => {
             const passId=document.getElementById("passIdInput").value.trim(),resultDiv=document.getElementById("verificationResult");if(!passId)return void(resultDiv.innerHTML='<p class="text-red-600">Please enter a Pass ID.</p>');const passRef=doc(gatePassesCollectionRef,passId),docSnap=await getDoc(passRef);docSnap.exists()&&"approved"===docSnap.data().status?(()=>{const e=docSnap.data(),t=new Date>new Date(e.leaveEnd),a=t?"yellow":"green",s=t?"EXPIRED":"ACTIVE";resultDiv.innerHTML=`<div class="bg-${a}-100 border-l-4 border-${a}-500 text-${a}-700 p-4 rounded-lg"><p class="font-bold">Pass Verified${t?", but EXPIRED":""}</p><p><strong>Student:</strong> ${e.studentName}</p><p><strong>ID:</strong> ${e.studentId}</p><p><strong>Valid Until:</strong> ${new Date(e.leaveEnd).toLocaleString()}</p><p class="font-bold mt-2">STATUS: ${s}</p></div>`})():resultDiv.innerHTML='<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg"><p class="font-bold">Invalid or Unapproved Pass</p></div>'
         };
 
-        // --- NEW: Principal Logic ---
+        // --- Principal Logic ---
         function listenForPendingFacultyLeaves() {
-            const q = query(facultyLeavesCollectionRef, where("status", "==", "pending")); // Use new collection
+            const q = query(facultyLeavesCollectionRef, where("status", "==", "pending"));
             onSnapshot(q, (snapshot) => {
                 const principalRequestList = document.getElementById('principalRequestList');
                 principalRequestList.innerHTML = '';
@@ -512,11 +528,10 @@
                 }
                 const requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 requests.sort((a, b) => (a.requestedAt?.toDate() || 0) - (b.requestedAt?.toDate() || 0));
-                requests.forEach(req => principalRequestList.appendChild(createPrincipalRequestCard(req))); // New card function
+                requests.forEach(req => principalRequestList.appendChild(createPrincipalRequestCard(req)));
             });
         }
 
-        // NEW: Card for Principal's dashboard
         function createPrincipalRequestCard(request) {
             const card = document.createElement('div');
             card.className="bg-gray-50 p-5 rounded-xl border";
@@ -532,14 +547,13 @@
             return card;
         }
 
-        // NEW: Update function for faculty leaves
         window.updateFacultyLeaveStatus = async (id, status) => {
-            const passRef = doc(facultyLeavesCollectionRef, id); // Use new collection
+            const passRef = doc(facultyLeavesCollectionRef, id);
             await updateDoc(passRef, { status, processedAt: serverTimestamp() });
         };
 
 
-        // --- Modal Logic (Existing) ---
+        // --- Modal Logic ---
         function showModal(title, message, type = 'info') {
             const modalTitle = document.getElementById('modalTitle');
             const modalMessage = document.getElementById('modalMessage');
